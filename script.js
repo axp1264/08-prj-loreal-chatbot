@@ -75,7 +75,7 @@ chatForm.addEventListener("submit", async (e) => {
     setFormLoading(false);
   }
 });
-
+function appendMessage(sender, text) {
   const msgDiv = document.createElement("div");
   msgDiv.classList.add("msg", sender);
   msgDiv.innerHTML = DOMPurify.sanitize(marked.parse(text));
