@@ -53,11 +53,23 @@ chatForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ messages: conversationHistory }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Server returned status ${response.status}`);
+    const data = await response.json();
+
+    // 1. Log the full response so you can see what the Worker/OpenAI returned
+    console.log("Worker Response Data:", data);
+
+    // 2. Check if OpenAI or Cloudflare returned an error
+    if (data.error) {
+      const errorMsg =
+        typeof data.error === "object" ? data.error.message : data.error;
+      throw new Error(`Worker Error: ${errorMsg}`);
     }
 
-    const data = await response.json();
+    // 3. Verify choices array exists
+    if (!data.choices || !data.choices[0]) {
+      throw new Error("Invalid response format received from API.");
+    }
+
     const botReply = data.choices[0].message.content;
 
     // Remove loading indicator and render AI response
@@ -71,7 +83,7 @@ chatForm.addEventListener("submit", async (e) => {
     loadingBubble.remove();
     appendMessage(
       "ai",
-      "Sorry, I am currently unable to process your request. Please check your connection and try again.",
+      "Sorry, I am currently unable to process your request. Please check the console for details.",
     );
   } finally {
     setFormLoading(false);
@@ -84,7 +96,7 @@ chatForm.addEventListener("submit", async (e) => {
 function appendMessage(sender, text) {
   const msgDiv = document.createElement("div");
   msgDiv.classList.add("msg", sender);
-  msgDiv.textContent = text;
+  msgDiv.innerHTML = DOMPurify.sanitize(marked.parse(text));
 
   chatWindow.appendChild(msgDiv);
   chatWindow.scrollTop = chatWindow.scrollHeight;
